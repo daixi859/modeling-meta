@@ -13,16 +13,16 @@ export default async function handler(
   res: NextApiResponse
 ) {
   const types = ["FunctionPage", "BusinessComponent", "BusinessScript"];
-  const filename = req.query.filename as string;
-  if (!req.query.filename) {
-    return res.status(400).json({ msg: "请输入参数filename" });
+  const id = req.query.id as string;
+  if (!id) {
+    return res.status(400).json({ msg: "请输入参数id" });
   }
 
   for (const type of types) {
     const files = await fs.readdir(path.join(metPath, type));
 
     for (const file of files) {
-      if (file === filename) {
+      if (file === id + ".metadata.config") {
         const xml = await fs.readFile(path.join(metPath, type, file), {
           encoding: "utf-8",
         });
@@ -32,5 +32,5 @@ export default async function handler(
     }
   }
 
-  return res.status(400).json({msg: '没找到页面'});
+  return res.status(400).json({ msg: "没找到页面" });
 }

@@ -1,0 +1,16 @@
+.table {
+  width: 100%;
+  table-layout: fixed;
+  font-size: 14px;
+}
+.table th {
+  font-size: border;
+  background-color: aliceblue;
+  white-space: nowrap;
+}
+.table td,
+.table th {
+  text-align: left;
+  padding: 6px 12px;
+  border-bottom: 1px solid aliceblue;
+}
