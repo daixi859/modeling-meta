@@ -12,7 +12,6 @@ body {
   overflow-y: scroll;
 }
 pre {
-  white-space: pre-wrap;
   font-family: monospace, "Courier New", Courier;
 }
 svg {

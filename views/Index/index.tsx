@@ -5,31 +5,33 @@ import useSetState from "@/utils/useSetState";
 import React, { useEffect, useMemo } from "react";
 
 import CellKeyword from "@/views/Index/CellKeyword";
-import { Input, Space, Segmented } from "antd";
+import { Input, Space, Segmented, Tag, Button } from "antd";
 import SimpleTable from "@/components/SimpleTable";
-
+import classes from "./index.module.scss";
 type Fields = React.ComponentProps<typeof SimpleTable>["columns"];
-const pageFields: Fields = [
-  { title: "页面名称", dataIndex: "pageName" },
-  { title: "业务单元", dataIndex: "functionCode" },
-  { title: "页面id", dataIndex: "functionPageId" },
-  { title: "页面路径", dataIndex: "url" },
-  { title: "文件名", dataIndex: "fileName" },
-  { title: "修改人", dataIndex: "modifiedBy" },
 
+const fields: Fields = [
   {
-    title: "修改时间",
-    dataIndex: "modifiedOn",
-    render(value: string) {
-      return new Date(value).toLocaleString();
+    title: "页面/组件/脚本名称",
+    dataIndex: "name",
+    render(name, recode) {
+      return (
+        <>
+          {recode.type === "page" ? (
+            <Tag color="red">页面</Tag>
+          ) : recode.type == "component" ? (
+            <Tag color="blue">组件</Tag>
+          ) : (
+            <Tag color="green">脚本</Tag>
+          )}
+          {name}
+        </>
+      );
     },
   },
-];
-const compFields: Fields = [
-  { title: "组件名称", dataIndex: "componentName" },
   { title: "业务单元", dataIndex: "functionCode" },
-  { title: "组件id", dataIndex: "componentGuid" },
-  { title: "文件名", dataIndex: "fileName" },
+  { title: "id", dataIndex: "id" },
+  { title: "文件名", dataIndex: "filename" },
   { title: "修改人", dataIndex: "modifiedBy" },
   {
     title: "修改时间",
@@ -38,50 +40,55 @@ const compFields: Fields = [
       return new Date(value).toLocaleString();
     },
   },
-];
-const scriptFields: Fields = [
-  { title: "脚本名称", dataIndex: "scriptName" },
-  { title: "业务单元", dataIndex: "functionCode" },
-  { title: "脚本id", dataIndex: "scriptGuid" },
-  { title: "文件名", dataIndex: "fileName" },
-  { title: "修改人", dataIndex: "modifiedBy" },
   {
-    title: "修改时间",
-    dataIndex: "modifiedOn",
-    render(value: string) {
-      return new Date(value).toLocaleString();
+    title: "操作",
+    dataIndex: "action",
+    className: classes.action,
+    width: 150,
+    render(_, row) {
+      const host = process.env.NEXT_PUBLIC_MODELHOST;
+      const typeUrlMap: LooseObject = {
+        page: "function-page-coding",
+        component: "business-component",
+        script: "business-script",
+      };
+      return (
+        <>
+          {row.type === "page" && (
+            <a href={host + row.url} target="_blank">
+              查看
+            </a>
+          )}
+          <a
+            href={host + `/coding/${typeUrlMap[row.type]}/${row.id}`}
+            target="_blank"
+          >
+            编辑
+          </a>
+          <span>引用</span>
+          {row.type !== "page" && <span>被引用</span>}
+        </>
+      );
     },
   },
 ];
+
 export default function Page() {
-  const [{ pageData, compData, scriptData, tabs, tab, keyword }, setState] =
-    useSetState({
-      pageData: [] as any[],
-      compData: [] as any[],
-      scriptData: [] as any[],
-      tab: "functionPageId",
-      tabs: [
-        { label: "页面", value: "functionPageId" },
-        { label: "组件", value: "componentGuid" },
-        { label: "脚本", value: "scriptGuid" },
-      ],
-      keyword: "",
-    });
+  const [{ tabs, tab, keyword, list }, setState] = useSetState({
+    list: [] as any[],
+    tab: "",
+    tabs: [
+      { label: "全部", value: "" },
+      { label: "页面", value: "page" },
+      { label: "组件", value: "component" },
+      { label: "脚本", value: "script" },
+    ],
+    keyword: "",
+  });
 
-  const { fields, data, guids } = useMemo(() => {
-    let fields: Fields = [];
-    let data = [];
-    let guids = [] as string[];
-    if (tab == "componentGuid") {
-      fields = compFields;
-      data = compData;
-    } else if (tab == "scriptGuid") {
-      fields = scriptFields;
-      data = scriptData;
-    } else {
-      fields = pageFields;
-      data = pageData;
-    }
+  const { data } = useMemo(() => {
+    let data = list.filter((t) => (tab ? t.type === tab : true));
+
     if (keyword) {
       data = data.filter((item) => {
         let flag = false;
@@ -98,14 +105,38 @@ export default function Page() {
       });
     }
 
-    return { fields, data, guids };
-  }, [compData, pageData, scriptData, tab, keyword]);
+    return { data };
+  }, [list, keyword, tab]);
 
   useEffect(() => {
     req
       .get<{ compData: any[]; pageData: any[]; scriptData: any[] }>("/api/user")
       .then(({ pageData, compData, scriptData }) => {
-        setState({ pageData, compData, scriptData });
+        let list = pageData
+          .map((t) => ({
+            ...t,
+            type: "page",
+            name: t.pageName,
+            id: t.functionPageId,
+          }))
+          .concat(
+            compData.map((t) => ({
+              ...t,
+              type: "component",
+              name: t.componentName,
+              id: t.componentGuid,
+            }))
+          )
+          .concat(
+            scriptData.map((t) => ({
+              ...t,
+              type: "script",
+              name: t.scriptName,
+              id: t.scriptGuid,
+            }))
+          );
+
+        setState({ list });
       });
   }, [setState]);
 
@@ -118,7 +149,7 @@ export default function Page() {
           onChange={(tab) => setState({ tab: tab as string })}
         />
         <Input.Search
-          placeholder="请输入"
+          placeholder="请输入代码搜索"
           allowClear
           onBlur={(e) => {
             setState({ keyword: e.target.value });
@@ -131,11 +162,11 @@ export default function Page() {
       <SimpleTable
         columns={fields}
         dataSource={data}
-        rowKey={tab}
         expandable={{
           expandedRowRender: (item) => (
             <CellKeyword keyword={keyword} item={item} />
           ),
+          rowExpandable: (item, i) => (i === 0 ? !!keyword : false),
         }}
       />
     </PageLayout>

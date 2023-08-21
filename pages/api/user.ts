@@ -7,7 +7,7 @@ import { attr2Array } from "@/utils/common";
 const parser = new XMLParser({
   ignoreAttributes: false,
 });
-const metPath = "D:/workspace/company/tzgl/_metadata";
+const metaPath = process.env.metaPath;
 
 export type Page_ITEM = {
   filePath: string;
@@ -63,10 +63,10 @@ export default async function handler(
 
 async function getScriptData() {
   const scriptData: any[] = [];
-  const dir = await fs.readdir(path.join(metPath, "BusinessScript"));
+  const dir = await fs.readdir(path.join(metaPath, "BusinessScript"));
 
   for (const filename of dir) {
-    const filePath = path.join(metPath, "BusinessScript", filename);
+    const filePath = path.join(metaPath, "BusinessScript", filename);
     const xml = await fs.readFile(filePath, { encoding: "utf-8" });
 
     let obj = parser.parse(xml);
@@ -92,9 +92,9 @@ async function getScriptData() {
 
 async function getComponentData() {
   const compData = [];
-  const dir = await fs.readdir(path.join(metPath, "BusinessComponent"));
+  const dir = await fs.readdir(path.join(metaPath, "BusinessComponent"));
   for (const filename of dir) {
-    const filePath = path.join(metPath, "BusinessComponent", filename);
+    const filePath = path.join(metaPath, "BusinessComponent", filename);
     const xml = await fs.readFile(filePath, { encoding: "utf-8" });
 
     let obj = parser.parse(xml);
@@ -157,10 +157,10 @@ async function getComponentData() {
 
 async function getPageData() {
   const pageData: Page_ITEM[] = [];
-  const dir = await fs.readdir(path.join(metPath, "FunctionPage"));
+  const dir = await fs.readdir(path.join(metaPath, "FunctionPage"));
 
   for (const filename of dir) {
-    const filePath = path.join(metPath, "FunctionPage", filename);
+    const filePath = path.join(metaPath, "FunctionPage", filename);
     const xml = await fs.readFile(filePath, { encoding: "utf-8" });
 
     let obj = parser.parse(xml);

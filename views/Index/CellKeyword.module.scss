@@ -1,0 +1,4 @@
+.cell {
+  @apply flex-1 border-l px-2 border-l-slate-100 first:border-none text-xs min-w-0  overflow-auto;
+  max-height: 600px;
+}
