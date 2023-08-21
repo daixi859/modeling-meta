@@ -7,7 +7,7 @@ import { attr2Array } from "@/utils/common";
 const parser = new XMLParser({
   ignoreAttributes: false,
 });
-const metaPath = process.env.metaPath;
+const metaPath = process.env.metaPath || "";
 
 export type Page_ITEM = {
   filePath: string;
