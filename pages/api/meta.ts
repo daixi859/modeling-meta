@@ -6,7 +6,7 @@ import path from "path";
 const parser = new XMLParser({
   ignoreAttributes: false,
 });
-const metPath = "D:/workspace/company/tzgl/_metadata";
+const metPath = process.env.metaPath || "";
 
 export default async function handler(
   req: NextApiRequest,
