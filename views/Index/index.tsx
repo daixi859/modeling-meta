@@ -89,7 +89,7 @@ export default function Page() {
         title: "操作",
         dataIndex: "action",
         className: classes.action,
-        width: 150,
+        width: 220,
         render(_, row) {
           const typeUrlMap: LooseObject = {
             page: "function-page-coding",
@@ -98,6 +98,12 @@ export default function Page() {
           };
           return (
             <>
+              <a href={"/api/meta?type=xml&id=" + row.id} target="_blank">
+                XML
+              </a>
+              <a href={"/api/xml?id=" + row.id} target="_blank">
+                JSON
+              </a>
               <a
                 href={host + `/coding/${typeUrlMap[row.type]}/${row.id}`}
                 target="_blank"
@@ -182,7 +188,7 @@ export default function Page() {
 
   useEffect(() => {
     req
-      .get<{ compData: any[]; pageData: any[]; scriptData: any[] }>("/api/user")
+      .get<{ compData: any[]; pageData: any[]; scriptData: any[] }>("/api/data")
       .then(({ pageData, compData, scriptData }) => {
         let list = pageData
           .map((t) => ({

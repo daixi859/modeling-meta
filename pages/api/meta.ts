@@ -26,6 +26,9 @@ export default async function handler(
         const xml = await fs.readFile(path.join(metPath, type, file), {
           encoding: "utf-8",
         });
+        if (req.query.type === "xml") {
+          return res.status(200).send(xml);
+        }
         const obj = parser.parse(xml);
         return res.status(200).json(obj);
       }
