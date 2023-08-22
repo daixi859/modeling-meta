@@ -77,6 +77,7 @@ async function getScriptData() {
       filename,
       scriptName: obj["@_scriptName"],
       functionGuid: obj["@_functionGuid"],
+      scriptId: obj["@_scriptId"],
       functionCode: functionGUID2Code[obj["@_functionGuid"]],
       scriptGuid: obj["@_scriptGuid"],
       createdBy: obj["@_createdBy"],

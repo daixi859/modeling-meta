@@ -11,13 +11,6 @@ import classes from "./index.module.scss";
 type Fields = React.ComponentProps<typeof SimpleTable>["columns"];
 const host = process.env.NEXT_PUBLIC_MODELHOST;
 
-function hasDependent(row: any) {
-  return (
-    (row.dependentScripts && row.dependentScripts.length > 0) ||
-    (row.dependentComponents && row.dependentComponents.length > 0)
-  );
-}
-
 export default function Page() {
   const [
     { tabs, tab, keyword, list, pageId, codeId, functionCode, quoteItems },
@@ -48,27 +41,36 @@ export default function Page() {
         title: "页面/组件/脚本名称",
         dataIndex: "name",
         render(name, row) {
+          const tagMap: LooseObject = {
+            component: "componentId",
+            script: "scriptId",
+          };
           return (
-            <>
-              {row.type === "page" ? (
-                <Tag color="red">页面</Tag>
-              ) : row.type == "component" ? (
-                <Tag color="blue">组件</Tag>
-              ) : (
-                <Tag color="green">脚本</Tag>
-              )}
-              {row.type === "page" ? (
-                <a
-                  href={host + row.url}
-                  target="_blank"
-                  className="hover:text-blue-500"
-                >
-                  {name}
-                </a>
-              ) : (
-                name
-              )}
-            </>
+            <div className="flex">
+              <div>
+                {row.type === "page" ? (
+                  <Tag color="red">页面</Tag>
+                ) : row.type == "component" ? (
+                  <Tag color="blue">组件</Tag>
+                ) : (
+                  <Tag color="green">脚本</Tag>
+                )}
+              </div>
+              <div>
+                {row.type === "page" ? (
+                  <a
+                    href={host + row.url}
+                    target="_blank"
+                    className="hover:text-blue-500"
+                  >
+                    {name}
+                  </a>
+                ) : (
+                  name
+                )}
+                {tagMap[row.type] && <div>{row[tagMap[row.type]]}</div>}
+              </div>
+            </div>
           );
         },
       },
@@ -219,7 +221,6 @@ export default function Page() {
             );
           }
           t.dependencies.forEach((id: any) => {
-            console.log("---", id);
             if (!bDependencies[id]) {
               bDependencies[id] = [];
             }
