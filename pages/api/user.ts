@@ -66,6 +66,9 @@ async function getScriptData() {
   const dir = await fs.readdir(path.join(metaPath, "BusinessScript"));
 
   for (const filename of dir) {
+    if (filename.indexOf("metadata.config") === -1) {
+      continue;
+    }
     const filePath = path.join(metaPath, "BusinessScript", filename);
     const xml = await fs.readFile(filePath, { encoding: "utf-8" });
 
@@ -95,6 +98,9 @@ async function getComponentData() {
   const compData = [];
   const dir = await fs.readdir(path.join(metaPath, "BusinessComponent"));
   for (const filename of dir) {
+    if (filename.indexOf("metadata.config") === -1) {
+      continue;
+    }
     const filePath = path.join(metaPath, "BusinessComponent", filename);
     const xml = await fs.readFile(filePath, { encoding: "utf-8" });
 
@@ -161,6 +167,9 @@ async function getPageData() {
   const dir = await fs.readdir(path.join(metaPath, "FunctionPage"));
 
   for (const filename of dir) {
+    if (filename.indexOf("metadata.config") === -1) {
+      continue;
+    }
     const filePath = path.join(metaPath, "FunctionPage", filename);
     const xml = await fs.readFile(filePath, { encoding: "utf-8" });
 
