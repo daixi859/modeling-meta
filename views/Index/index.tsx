@@ -89,7 +89,7 @@ export default function Page() {
         title: "操作",
         dataIndex: "action",
         className: classes.action,
-        width: 220,
+        width: 230,
         render(_, row) {
           const typeUrlMap: LooseObject = {
             page: "function-page-coding",
@@ -101,7 +101,7 @@ export default function Page() {
               <a href={"/api/meta?type=xml&id=" + row.id} target="_blank">
                 XML
               </a>
-              <a href={"/api/xml?id=" + row.id} target="_blank">
+              <a href={"/api/meta?id=" + row.id} target="_blank">
                 JSON
               </a>
               <a
