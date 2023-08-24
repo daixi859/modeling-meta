@@ -11,39 +11,10 @@ import classes from "./index.module.scss";
 import { getMetaHost } from "@/utils/common";
 type Fields = React.ComponentProps<typeof SimpleTable>["columns"];
 const typeKey = "METATYPEKEY";
-export default function Page() {
-  const [
-    {
-      type,
-      loading,
-      types,
-      tabs,
-      tab,
-      keyword,
-      list,
-
-      codeId,
-      functionCode,
-      quoteItems,
-    },
-    setState,
-  ] = useSetState({
-    type: "tzgl",
-    loading: false,
-    types: [
-      { label: "投资管理", value: "tzgl" },
-      { label: "项目塔台", value: "tower" },
-    ],
-    list: [] as any[],
+function initData() {
+  return {
     tab: "",
-    tabs: [
-      { label: "全部", value: "" },
-      { label: "页面", value: "page" },
-      { label: "组件", value: "component" },
-      { label: "脚本", value: "script" },
-    ],
     keyword: "",
-    pageId: "",
     codeId: "",
     functionCode: undefined,
     quoteItems: [] as {
@@ -51,13 +22,42 @@ export default function Page() {
       keyword?: string;
       item: LooseObject;
     }[],
+  };
+}
+export default function Page() {
+  const [
+    {
+      type,
+      loading,
+      first,
+      types,
+      tabs,
+      tab,
+      keyword,
+      list,
+      codeId,
+      functionCode,
+      quoteItems,
+    },
+    setState,
+  ] = useSetState({
+    type: "tzgl",
+    first: true,
+    loading: false,
+    types: [
+      { label: "投资管理", value: "tzgl" },
+      { label: "项目塔台", value: "tower" },
+    ],
+    list: [] as any[],
+    tabs: [
+      { label: "全部", value: "" },
+      { label: "页面", value: "page" },
+      { label: "组件", value: "component" },
+      { label: "脚本", value: "script" },
+    ],
+    ...initData(),
   });
-  useEffect(() => {
-    const type = localStorage.getItem(typeKey);
-    if (type) {
-      setState({ type });
-    }
-  }, [setState]);
+
   const host = getMetaHost(type);
   const fields = useMemo(() => {
     const fields: Fields = [
@@ -114,12 +114,13 @@ export default function Page() {
         dataIndex: "action",
         className: classes.action,
         width: 230,
-        render(_, row) {
+        render(_, row, i) {
           const typeUrlMap: LooseObject = {
             page: "function-page-coding",
             component: "business-component",
             script: "business-script",
           };
+
           return (
             <>
               <a
@@ -216,20 +217,29 @@ export default function Page() {
   }, [list]);
 
   useEffect(() => {
-    localStorage.setItem(typeKey, type);
-  }, [type]);
-
+    if (!first) {
+      localStorage.setItem(typeKey, type);
+    }
+  }, [type, first]);
   useEffect(() => {
-    setState({ loading: true });
-    req
-      .get<{ compData: any[]; pageData: any[]; scriptData: any[] }>(
-        "/api/data",
-        { type }
-      )
-      .then((data) => {
-        setState({ list: generateList(data), loading: false });
-      });
-  }, [setState, type]);
+    const type = localStorage.getItem(typeKey);
+    if (type) {
+      setState({ type, first: false });
+    }
+  }, [setState]);
+  useEffect(() => {
+    if (!first) {
+      setState({ loading: true });
+      req
+        .get<{ compData: any[]; pageData: any[]; scriptData: any[] }>(
+          "/api/data",
+          { type }
+        )
+        .then((data) => {
+          setState({ list: generateList(data), loading: false });
+        });
+    }
+  }, [setState, type, first]);
   const items = [
     {
       title: <span className="cursor-pointer">全部</span>,
@@ -255,7 +265,9 @@ export default function Page() {
         <Segmented
           options={types}
           value={type}
-          onChange={(type) => setState({ type: type as string })}
+          onChange={(type) => {
+            setState({ ...initData(), type: type as string });
+          }}
         />
         {!quote ? (
           <>
