@@ -3,7 +3,7 @@ import fs from "fs/promises";
 import { XMLParser, XMLBuilder, XMLValidator } from "fast-xml-parser";
 
 import path from "path";
-import { attr2Array } from "@/utils/common";
+import { attr2Array, getMetaPath } from "@/utils/common";
 const parser = new XMLParser({
   ignoreAttributes: false,
 });
@@ -40,28 +40,24 @@ export type Page_ITEM = {
   script: string;
 };
 
-let pageData = [] as Page_ITEM[];
-let compData = [] as any[];
-let scriptData = [] as any[];
-let loaded = false;
-let lastTime = Date.now();
-let functionGUID2Code: Record<string, string> = {};
-
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (Date.now() - lastTime > 1000 * 60 || !loaded || req.query.refresh) {
-    pageData = await getPageData();
-    compData = await getComponentData();
-    scriptData = await getScriptData();
-    lastTime = Date.now();
-  }
-  loaded = true;
+  let functionGUID2Code: Record<string, string> = {};
+  const type = req.query.type as "tzgl" | "tower";
+  let metaPath = getMetaPath(type) as string;
+  const pageData = await getPageData(metaPath, functionGUID2Code);
+  const compData = await getComponentData(metaPath, functionGUID2Code);
+  const scriptData = await getScriptData(metaPath, functionGUID2Code);
+
   res.status(200).json({ pageData, compData, scriptData });
 }
 
-async function getScriptData() {
+async function getScriptData(
+  metaPath: string,
+  functionGUID2Code: Record<string, string>
+) {
   const scriptData: any[] = [];
   const dir = await fs.readdir(path.join(metaPath, "BusinessScript"));
 
@@ -94,7 +90,10 @@ async function getScriptData() {
   return scriptData;
 }
 
-async function getComponentData() {
+async function getComponentData(
+  metaPath: string,
+  functionGUID2Code: Record<string, string>
+) {
   const compData = [];
   const dir = await fs.readdir(path.join(metaPath, "BusinessComponent"));
   for (const filename of dir) {
@@ -162,7 +161,10 @@ async function getComponentData() {
   return compData;
 }
 
-async function getPageData() {
+async function getPageData(
+  metaPath: string,
+  functionGUID2Code: Record<string, string>
+) {
   const pageData: Page_ITEM[] = [];
   const dir = await fs.readdir(path.join(metaPath, "FunctionPage"));
 

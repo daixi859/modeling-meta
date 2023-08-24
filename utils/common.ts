@@ -27,3 +27,13 @@ export function attr2Array(obj: Object, ...attrs: string[]) {
     }
   }
 }
+
+export function getMetaPath(type = "tzgl") {
+  return type == "tzgl" ? process.env.tzglMetaPath : process.env.towerMetaPath;
+}
+
+export function getMetaHost(type = "tzgl") {
+  return type == "tzgl"
+    ? process.env.NEXT_PUBLIC_TZGL_MODELHOST
+    : process.env.NEXT_PUBLIC_TOWER_MODELHOST;
+}

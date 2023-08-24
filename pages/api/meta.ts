@@ -3,10 +3,10 @@ import fs from "fs/promises";
 import { XMLParser, XMLBuilder, XMLValidator } from "fast-xml-parser";
 
 import path from "path";
+import { getMetaHost, getMetaPath } from "@/utils/common";
 const parser = new XMLParser({
   ignoreAttributes: false,
 });
-const metPath = process.env.metaPath || "";
 
 export default async function handler(
   req: NextApiRequest,
@@ -17,7 +17,7 @@ export default async function handler(
   if (!id) {
     return res.status(400).json({ msg: "请输入参数id" });
   }
-
+  const metPath = getMetaPath(req.query.type as string) as string;
   for (const type of types) {
     const files = await fs.readdir(path.join(metPath, type));
 
@@ -26,7 +26,7 @@ export default async function handler(
         const xml = await fs.readFile(path.join(metPath, type, file), {
           encoding: "utf-8",
         });
-        if (req.query.type === "xml") {
+        if (req.query.format === "xml") {
           return res.status(200).send(xml);
         }
         const obj = parser.parse(xml);

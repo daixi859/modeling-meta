@@ -5,17 +5,35 @@ import useSetState from "@/utils/useSetState";
 import React, { useEffect, useMemo } from "react";
 
 import CellKeyword from "@/views/Index/CellKeyword";
-import { Input, Space, Segmented, Tag, Select, Breadcrumb } from "antd";
+import { Input, Space, Segmented, Tag, Select, Breadcrumb, Spin } from "antd";
 import SimpleTable from "@/components/SimpleTable";
 import classes from "./index.module.scss";
+import { getMetaHost } from "@/utils/common";
 type Fields = React.ComponentProps<typeof SimpleTable>["columns"];
-const host = process.env.NEXT_PUBLIC_MODELHOST;
-
+const typeKey = "METATYPEKEY";
 export default function Page() {
   const [
-    { tabs, tab, keyword, list, pageId, codeId, functionCode, quoteItems },
+    {
+      type,
+      loading,
+      types,
+      tabs,
+      tab,
+      keyword,
+      list,
+
+      codeId,
+      functionCode,
+      quoteItems,
+    },
     setState,
   ] = useSetState({
+    type: "tzgl",
+    loading: false,
+    types: [
+      { label: "投资管理", value: "tzgl" },
+      { label: "项目塔台", value: "tower" },
+    ],
     list: [] as any[],
     tab: "",
     tabs: [
@@ -34,7 +52,13 @@ export default function Page() {
       item: LooseObject;
     }[],
   });
-
+  useEffect(() => {
+    const type = localStorage.getItem(typeKey);
+    if (type) {
+      setState({ type });
+    }
+  }, [setState]);
+  const host = getMetaHost(type);
   const fields = useMemo(() => {
     const fields: Fields = [
       {
@@ -98,10 +122,13 @@ export default function Page() {
           };
           return (
             <>
-              <a href={"/api/meta?type=xml&id=" + row.id} target="_blank">
+              <a
+                href={`/api/meta?format=xml&type=${type}&id=${row.id}`}
+                target="_blank"
+              >
                 XML
               </a>
-              <a href={"/api/meta?id=" + row.id} target="_blank">
+              <a href={`/api/meta?type=${type}&id=${row.id}`} target="_blank">
                 JSON
               </a>
               <a
@@ -139,7 +166,7 @@ export default function Page() {
       },
     ];
     return fields;
-  }, [setState, quoteItems]);
+  }, [host, type, setState, quoteItems]);
 
   const { data, quote, kw } = useMemo(() => {
     let data = list;
@@ -153,10 +180,12 @@ export default function Page() {
     } else {
       data = data
         .filter((t) => (tab ? t.type === tab : true))
+
         .filter((t) =>
-          pageId ? (t.url ? t.url.indexOf(pageId) > -1 : false) : true
+          codeId
+            ? t.id === codeId || (t.url ? t.url.indexOf(codeId) > -1 : false)
+            : true
         )
-        .filter((t) => (codeId ? t.id === codeId : true))
         .filter((t) => (functionCode ? t.functionCode === functionCode : true));
     }
 
@@ -177,7 +206,7 @@ export default function Page() {
     }
 
     return { data, quote, kw };
-  }, [list, keyword, tab, pageId, codeId, functionCode, quoteItems]);
+  }, [list, keyword, tab, codeId, functionCode, quoteItems]);
 
   const functionCodeOptions = useMemo(() => {
     return Array.from(new Set(list.map((t) => t.functionCode))).map((t) => ({
@@ -187,61 +216,20 @@ export default function Page() {
   }, [list]);
 
   useEffect(() => {
-    req
-      .get<{ compData: any[]; pageData: any[]; scriptData: any[] }>("/api/data")
-      .then(({ pageData, compData, scriptData }) => {
-        let list = pageData
-          .map((t) => ({
-            ...t,
-            type: "page",
-            name: t.pageName,
-            id: t.functionPageId,
-          }))
-          .concat(
-            compData.map((t) => ({
-              ...t,
-              type: "component",
-              name: t.componentName,
-              id: t.componentGuid,
-            }))
-          )
-          .concat(
-            scriptData.map((t) => ({
-              ...t,
-              type: "script",
-              name: t.scriptName,
-              id: t.scriptGuid,
-            }))
-          );
-        var bDependencies: Record<string, string[]> = {};
-        list.forEach((t) => {
-          t.dependencies = [];
-          if (t.dependentComponents) {
-            t.dependencies = t.dependencies.concat(
-              t.dependentComponents.map((t: any) => t.componentGuid)
-            );
-          }
-          if (t.dependentScripts) {
-            t.dependencies = t.dependencies.concat(
-              t.dependentScripts.map((t: any) => t.scriptGuid)
-            );
-          }
-          t.dependencies.forEach((id: any) => {
-            if (!bDependencies[id]) {
-              bDependencies[id] = [];
-            }
-            if (bDependencies[id].indexOf(t.id) == -1) {
-              bDependencies[id].push(t.id);
-            }
-          });
-        });
-        list.forEach((t) => {
-          t.bDependencies = bDependencies[t.id] || [];
-        });
+    localStorage.setItem(typeKey, type);
+  }, [type]);
 
-        setState({ list });
+  useEffect(() => {
+    setState({ loading: true });
+    req
+      .get<{ compData: any[]; pageData: any[]; scriptData: any[] }>(
+        "/api/data",
+        { type }
+      )
+      .then((data) => {
+        setState({ list: generateList(data), loading: false });
       });
-  }, [setState]);
+  }, [setState, type]);
   const items = [
     {
       title: <span className="cursor-pointer">全部</span>,
@@ -263,82 +251,138 @@ export default function Page() {
   );
   return (
     <PageLayout>
-      {!quote && (
-        <Space className="mb-2 mt-2">
-          <Segmented
-            options={tabs}
-            value={tab}
-            onChange={(tab) => setState({ tab: tab as string })}
-          />
-          <Input.Search
-            placeholder="请输入代码搜索"
-            allowClear
-            onBlur={(e) => {
-              setState({ keyword: e.target.value });
-            }}
-            onSearch={(keyword) => {
-              setState({ keyword });
-            }}
-          />
-          <Select
-            allowClear
-            className="w-36"
-            placeholder="业务单元"
-            value={functionCode}
-            options={functionCodeOptions}
-            onChange={(t) => setState({ functionCode: t })}
-          ></Select>
-          <Input.Search
-            placeholder="编辑ID"
-            allowClear
-            onBlur={(e) => {
-              setState({ codeId: e.target.value });
-            }}
-            onSearch={(codeId) => {
-              setState({ codeId });
-            }}
-          />
-          {(tab === "page" || tab === "") && (
+      <Space className="mb-2 mt-2">
+        <Segmented
+          options={types}
+          value={type}
+          onChange={(type) => setState({ type: type as string })}
+        />
+        {!quote ? (
+          <>
+            <Segmented
+              options={tabs}
+              value={tab}
+              onChange={(tab) => setState({ tab: tab as string })}
+            />
             <Input.Search
-              placeholder="页面ID"
+              placeholder="请输入代码搜索"
               allowClear
               onBlur={(e) => {
-                setState({ pageId: e.target.value });
+                setState({ keyword: e.target.value });
               }}
-              onSearch={(pageId) => {
-                setState({ pageId });
+              onSearch={(keyword) => {
+                setState({ keyword });
               }}
             />
-          )}
-        </Space>
-      )}
-
-      {quote && (
-        <Space className="mb-2 mt-2">
-          <Input.Search
-            placeholder="请输入代码搜索"
-            allowClear
-            onBlur={(e) => {
-              quote.keyword = e.target.value;
-              setState({ quoteItems: quoteItems.slice() });
-            }}
-            onSearch={(keyword) => {
-              quote.keyword = keyword;
-              setState({ quoteItems: quoteItems.slice() });
-            }}
-          />
-          <Breadcrumb items={items} />
-        </Space>
-      )}
-
-      <SimpleTable
-        columns={fields}
-        dataSource={data}
-        expandable={{
-          expandedRowRender: (item) => <CellKeyword keyword={kw} item={item} />,
-          rowExpandable: (item, i) => (i === 0 ? !!kw : false),
-        }}
-      />
+            <Select
+              allowClear
+              className="w-36"
+              placeholder="业务单元"
+              value={functionCode}
+              options={functionCodeOptions}
+              onChange={(t) => setState({ functionCode: t })}
+            ></Select>
+            <Input.Search
+              placeholder="编辑ID/页面ID"
+              allowClear
+              onBlur={(e) => {
+                setState({ codeId: e.target.value });
+              }}
+              onSearch={(codeId) => {
+                setState({ codeId });
+              }}
+            />
+          </>
+        ) : (
+          <>
+            <Input.Search
+              placeholder="请输入代码搜索"
+              allowClear
+              onBlur={(e) => {
+                quote.keyword = e.target.value;
+                setState({ quoteItems: quoteItems.slice() });
+              }}
+              onSearch={(keyword) => {
+                quote.keyword = keyword;
+                setState({ quoteItems: quoteItems.slice() });
+              }}
+            />
+            <Breadcrumb items={items} />
+          </>
+        )}
+      </Space>
+      <Spin spinning={loading}>
+        <SimpleTable
+          columns={fields}
+          dataSource={data}
+          expandable={{
+            expandedRowRender: (item) => (
+              <CellKeyword keyword={kw} item={item} />
+            ),
+            rowExpandable: (item, i) => (i === 0 ? !!kw : false),
+          }}
+        />
+      </Spin>
     </PageLayout>
   );
+}
+
+function generateList({
+  pageData,
+  compData,
+  scriptData,
+}: {
+  compData: any[];
+  pageData: any[];
+  scriptData: any[];
+}) {
+  let list = pageData
+    .map((t) => ({
+      ...t,
+      type: "page",
+      name: t.pageName,
+      id: t.functionPageId,
+    }))
+    .concat(
+      compData.map((t) => ({
+        ...t,
+        type: "component",
+        name: t.componentName,
+        id: t.componentGuid,
+      }))
+    )
+    .concat(
+      scriptData.map((t) => ({
+        ...t,
+        type: "script",
+        name: t.scriptName,
+        id: t.scriptGuid,
+      }))
+    );
+  var bDependencies: Record<string, string[]> = {};
+  list.forEach((t) => {
+    t.dependencies = [];
+    if (t.dependentComponents) {
+      t.dependencies = t.dependencies.concat(
+        t.dependentComponents.map((t: any) => t.componentGuid)
+      );
+    }
+    if (t.dependentScripts) {
+      t.dependencies = t.dependencies.concat(
+        t.dependentScripts.map((t: any) => t.scriptGuid)
+      );
+    }
+    t.dependencies.forEach((id: any) => {
+      if (!bDependencies[id]) {
+        bDependencies[id] = [];
+      }
+      if (bDependencies[id].indexOf(t.id) == -1) {
+        bDependencies[id].push(t.id);
+      }
+    });
+  });
+  list.forEach((t) => {
+    t.bDependencies = bDependencies[t.id] || [];
+  });
+  return list;
 }
