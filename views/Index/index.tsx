@@ -226,6 +226,7 @@ export default function Page() {
     if (type) {
       setState({ type, first: false });
     }
+    setState({ first: false });
   }, [setState]);
   useEffect(() => {
     if (!first) {
